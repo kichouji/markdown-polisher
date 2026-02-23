@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Markdown Polisher</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      font-size: 14px;
+      background: #f0f2f5;
+      color: #333;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: #1a1a2e;
+      color: #fff;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.25);
+    }
+    header h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: .02em;
+    }
+    header .subtitle {
+      font-size: .8rem;
+      color: #aab4c8;
+      margin-left: auto;
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 16px;
+      max-width: 1600px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* ── Input panes ── */
+    .input-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .pane {
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      border: 1px solid #dde1e7;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+    .pane-header {
+      background: #f7f8fa;
+      border-bottom: 1px solid #dde1e7;
+      padding: 8px 14px;
+      font-weight: 600;
+      font-size: .82rem;
+      color: #555;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .pane-header .badge {
+      background: #e0e7ff;
+      color: #3730a3;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: .72rem;
+    }
+    .pane textarea {
+      flex: 1;
+      resize: none;
+      border: none;
+      outline: none;
+      font-family: 'Consolas', 'Menlo', 'Monaco', monospace;
+      font-size: .82rem;
+      line-height: 1.55;
+      padding: 12px 14px;
+      color: #1a1a2e;
+      background: transparent;
+      min-height: 280px;
+    }
+
+    .file-btn {
+      margin-left: auto;
+      padding: 3px 10px;
+      font-size: .75rem;
+      font-weight: 500;
+      background: #fff;
+      border: 1px solid #dde1e7;
+      color: #666;
+      transition: background .15s, border-color .15s, color .15s;
+    }
+    .file-btn:hover {
+      background: #e0e7ff;
+      border-color: #a5b4fc;
+      color: #3730a3;
+    }
+
+    .pane.drag-over {
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(79,70,229,.15);
+    }
+    .pane.drag-over textarea {
+      background: #eef2ff;
+    }
+
+    /* ── Controls bar ── */
+    .controls-bar {
+      background: #fff;
+      border: 1px solid #dde1e7;
+      border-radius: 8px;
+      padding: 14px 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06);
+      display: flex;
+      align-items: flex-start;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .controls-bar .section-title {
+      font-weight: 700;
+      font-size: .78rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 8px;
+    }
+
+    .checkboxes {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 32px;
+      flex: 1;
+    }
+
+    .checkboxes label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: .85rem;
+      user-select: none;
+    }
+    .checkboxes label:hover { color: #3730a3; }
+    .checkboxes input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      accent-color: #4f46e5;
+      cursor: pointer;
+    }
+    .checkboxes .feature-num {
+      font-size: .7rem;
+      background: #4f46e5;
+      color: #fff;
+      border-radius: 50%;
+      width: 18px;
+      height: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      justify-content: flex-start;
+    }
+
+    button {
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: .88rem;
+      font-weight: 600;
+      padding: 10px 28px;
+      transition: background .15s, transform .1s;
+    }
+    button:active { transform: scale(.97); }
+
+    #convert-btn {
+      background: #4f46e5;
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(79,70,229,.35);
+    }
+    #convert-btn:hover { background: #4338ca; }
+
+    #copy-btn {
+      background: #f0fdf4;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+    #copy-btn:hover { background: #dcfce7; }
+    #copy-btn:disabled {
+      opacity: .45;
+      cursor: default;
+    }
+
+    /* ── Error message ── */
+    #error-msg {
+      display: none;
+      background: #fef2f2;
+      border: 1px solid #fca5a5;
+      color: #991b1b;
+      border-radius: 6px;
+      padding: 10px 16px;
+      font-size: .85rem;
+      line-height: 1.5;
+      white-space: pre-line;
+    }
+
+    /* ── Output pane ── */
+    .output-section {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .output-label {
+      font-weight: 700;
+      font-size: .82rem;
+      color: #555;
+      padding-left: 2px;
+    }
+    #output {
+      width: 100%;
+      min-height: 300px;
+      resize: vertical;
+      background: #fff;
+      border: 1px solid #dde1e7;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-family: 'Consolas', 'Menlo', 'Monaco', monospace;
+      font-size: .82rem;
+      line-height: 1.55;
+      color: #1a1a2e;
+      outline: none;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+
+    .cb-wrapper { flex: 1; }
+
+    /* ── Responsive ── */
+    @media (max-width: 720px) {
+      .input-row { grid-template-columns: 1fr; }
+      .checkboxes { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>📝 Markdown Polisher</h1>
+  <span class="subtitle">Google ドキュメント → Markdown 変換後テキスト整形ツール</span>
+</header>
+
+<main>
+
+  <!-- Input panes -->
+  <div class="input-row">
+    <div class="pane" id="latex-pane">
+      <div class="pane-header">
+        <span class="badge">LaTeX 入力</span>
+        <button class="file-btn" id="latex-file-btn">📂 ファイルを選択</button>
+        <input type="file" id="latex-file-input" accept=".txt,.tex,.latex" hidden>
+      </div>
+      <textarea id="latex-input" placeholder="LaTeX形式の数式を含むテキストを貼り付けるか、ファイルをドロップしてください。&#10;例: $X$ や $$Attention(Q,K,V)=...$$"></textarea>
+    </div>
+    <div class="pane" id="markdown-pane">
+      <div class="pane-header">
+        <span class="badge">Markdown 入力</span>
+        <button class="file-btn" id="markdown-file-btn">📂 ファイルを選択</button>
+        <input type="file" id="markdown-file-input" accept=".txt,.md" hidden>
+      </div>
+      <textarea id="markdown-input" placeholder="Google ドキュメントから変換した Markdown テキストを貼り付けるか、ファイルをドロップしてください。&#10;例: ![][image1] や [image1]: &lt;data:image/png;base64,...&gt;"></textarea>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls-bar">
+    <div class="cb-wrapper">
+      <div class="section-title">実行する機能（チェックをはずすとスキップ）</div>
+      <div class="checkboxes">
+        <label>
+          <input type="checkbox" id="cb-image" checked>
+          <span class="feature-num">1</span>
+          Imageタグ → LaTeX 変換
+        </label>
+        <label>
+          <input type="checkbox" id="cb-base64" checked>
+          <span class="feature-num">2</span>
+          Base64 画像データ削除
+        </label>
+        <label>
+          <input type="checkbox" id="cb-annotation" checked>
+          <span class="feature-num">3</span>
+          注釈番号の削除
+        </label>
+        <label>
+          <input type="checkbox" id="cb-trailing-space" checked>
+          <span class="feature-num">4</span>
+          行末スペース削除
+        </label>
+        <label>
+          <input type="checkbox" id="cb-list-spacing" checked>
+          <span class="feature-num">5</span>
+          リスト整形（空行挿入）
+        </label>
+        <label>
+          <input type="checkbox" id="cb-list-br" checked>
+          <span class="feature-num">6</span>
+          リスト末尾へ &lt;br&gt;&lt;br&gt; 挿入
+        </label>
+      </div>
+    </div>
+    <div class="btn-group">
+      <button id="convert-btn">▶ 変換</button>
+      <button id="copy-btn" disabled>📋 出力をコピー</button>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div id="error-msg"></div>
+
+  <!-- Output -->
+  <div class="output-section">
+    <div class="output-label">出力結果</div>
+    <textarea id="output" readonly placeholder="「変換」ボタンを押すと結果がここに表示されます。"></textarea>
+  </div>
+
+</main>
+
+<script>
+  'use strict';
+
+  // ── DOM refs ────────────────────────────────────────────────────────────────
+  const $latexInput    = document.getElementById('latex-input');
+  const $markdownInput = document.getElementById('markdown-input');
+  const $output        = document.getElementById('output');
+  const $errorMsg      = document.getElementById('error-msg');
+  const $convertBtn    = document.getElementById('convert-btn');
+  const $copyBtn       = document.getElementById('copy-btn');
+  const $cbImage         = document.getElementById('cb-image');
+  const $cbBase64        = document.getElementById('cb-base64');
+  const $cbAnnotation    = document.getElementById('cb-annotation');
+  const $cbTrailingSpace = document.getElementById('cb-trailing-space');
+  const $cbListSpacing   = document.getElementById('cb-list-spacing');
+  const $cbListBr        = document.getElementById('cb-list-br');
+
+  // ── ユーティリティ ──────────────────────────────────────────────────────────
+  // msg が空文字のときはエラー表示を消す
+  function setError(msg) {
+    $errorMsg.textContent = msg;
+    $errorMsg.style.display = msg ? 'block' : 'none';
+  }
+
+  // ── 機能1: ImageタグのLaTeX形式への変換 ────────────────────────────────────
+
+  // $$...$$ は改行を含む可能性があるので [\s\S]、先にマッチさせる
+  // $...$ は同一行内に限定（改行・$ を内部に含まない）
+  function extractLatex(text) {
+    const results = [];
+    const regex = /\$\$[\s\S]+?\$\$|\$[^$\n]+?\$/g;
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+      results.push(match[0]);
+    }
+    return results;
+  }
+
+  function convertImageTags(latexText, markdownText) {
+    const latexCodes    = extractLatex(latexText);
+    const imageTagCount = (markdownText.match(/!\[\]\[image\d+\]/g) || []).length;
+
+    if (latexCodes.length !== imageTagCount) {
+      throw new Error(
+        `LaTeXコード数（${latexCodes.length}個）と画像タグ数（${imageTagCount}個）が一致しません。\n` +
+        `左ペインの LaTeX 式の数と右ペインの ![][imageX] タグの数を合わせてください。`
+      );
+    }
+
+    let idx = 0;
+    return markdownText.replace(/!\[\]\[image\d+\]/g, () => latexCodes[idx++]);
+  }
+
+  // ── 機能2: Base64 画像データ削除 ────────────────────────────────────────────
+  function deleteBase64(text) {
+    return text.replace(/^\[image\d+\]:\s*<data:image\/[^>]*>\s*$/gm, '');
+  }
+
+  // ── 機能3: 注釈番号の削除 ───────────────────────────────────────────────────
+  // 「注釈」「参考文献」「脚注」の見出し以降は対象外
+  function deleteAnnotations(text) {
+    const sectionMatch = /^#{1,6}\s*(注釈|参考文献|脚注)/m.exec(text);
+    if (sectionMatch) {
+      const body = text.slice(0, sectionMatch.index);
+      const tail = text.slice(sectionMatch.index);
+      return body.replace(/ ?\d{1,2}(?=。)/g, '') + tail;
+    }
+    return text.replace(/ ?\d{1,2}(?=。)/g, '');
+  }
+
+  // ── 機能4: 行末スペース削除（半角のみ） ─────────────────────────────────────
+  function deleteTrailingSpaces(text) {
+    return text.replace(/[ \t]+$/gm, '');
+  }
+
+  // ── 機能5: Markdownリストの空行挿入 ─────────────────────────────────────────
+  function insertListSpacing(text) {
+    const lines  = text.split('\n');
+    const result = [];
+    for (let i = 0; i < lines.length; i++) {
+      result.push(lines[i]);
+      if (/^\* /.test(lines[i]) && i + 1 < lines.length && /^\* /.test(lines[i + 1])) {
+        result.push('');
+      }
+    }
+    return result.join('\n');
+  }
+
+  // ── 機能6: リスト末尾への <br><br> 挿入 ─────────────────────────────────────
+  // 機能5 で挿入された空行を挟む場合も同一ブロックとして扱う
+  // ブロック内の最後の項目には追加しない
+  function insertListBr(text) {
+    const lines  = text.split('\n');
+    const result = [];
+    for (let i = 0; i < lines.length; i++) {
+      if (/^\* /.test(lines[i])) {
+        let j = i + 1;
+        while (j < lines.length && lines[j].trim() === '') j++;
+        if (j < lines.length && /^\* /.test(lines[j])) {
+          result.push(lines[i] + '<br><br>');
+          continue;
+        }
+      }
+      result.push(lines[i]);
+    }
+    return result.join('\n');
+  }
+
+  // ── 変換実行 ────────────────────────────────────────────────────────────────
+  $convertBtn.addEventListener('click', () => {
+    setError('');
+
+    const latexText    = $latexInput.value;
+    const markdownText = $markdownInput.value;
+
+    if (!markdownText.trim()) {
+      setError('⚠ 右ペイン（Markdown入力）が空です。テキストを貼り付けてから変換してください。');
+      return;
+    }
+
+    // 推奨処理順序に従って実行。チェックが外れている機能はスキップ。
+    const pipeline = [
+      { cb: $cbImage,         fn: (t) => convertImageTags(latexText, t) },
+      { cb: $cbBase64,        fn: deleteBase64 },
+      { cb: $cbAnnotation,    fn: deleteAnnotations },
+      { cb: $cbTrailingSpace, fn: deleteTrailingSpaces },
+      { cb: $cbListSpacing,   fn: insertListSpacing },
+      { cb: $cbListBr,        fn: insertListBr },
+    ];
+
+    try {
+      let text = markdownText;
+      for (const { cb, fn } of pipeline) {
+        if (cb.checked) text = fn(text);
+      }
+      $output.value    = text;
+      $copyBtn.disabled = !text;
+    } catch (e) {
+      setError('⚠ ' + e.message);
+    }
+  });
+
+  // ── ファイル入力（選択・ドラッグ＆ドロップ） ────────────────────────────────
+
+  function readFile(file, textareaEl) {
+    // テキストファイル以外はエラー
+    const isText = file.type.startsWith('text/') || /\.(txt|md|tex|latex)$/i.test(file.name);
+    if (!isText) {
+      setError(`⚠ "${file.name}" はテキストファイルではありません。.txt / .md / .tex などのファイルを選択してください。`);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload  = (e) => { textareaEl.value = e.target.result; };
+    reader.onerror = ()  => { setError('⚠ ファイルの読み込みに失敗しました。'); };
+    reader.readAsText(file, 'UTF-8');
+  }
+
+  function setupFileInput(paneEl, btnEl, fileInputEl, textareaEl) {
+    // ファイル選択ボタン
+    btnEl.addEventListener('click', () => fileInputEl.click());
+    fileInputEl.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) readFile(file, textareaEl);
+      fileInputEl.value = ''; // 同じファイルを再選択できるようにリセット
+    });
+
+    // ドラッグ＆ドロップ
+    // dragenterとdragleaveのカウンターで子要素をまたいでも正しくハイライトを制御する
+    let dragCount = 0;
+    paneEl.addEventListener('dragenter', (e) => {
+      e.preventDefault();
+      dragCount++;
+      paneEl.classList.add('drag-over');
+    });
+    paneEl.addEventListener('dragleave', () => {
+      dragCount--;
+      if (dragCount === 0) paneEl.classList.remove('drag-over');
+    });
+    paneEl.addEventListener('dragover', (e) => {
+      e.preventDefault(); // drop を許可するために必要
+    });
+    paneEl.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dragCount = 0;
+      paneEl.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file) readFile(file, textareaEl);
+    });
+  }
+
+  setupFileInput(
+    document.getElementById('latex-pane'),
+    document.getElementById('latex-file-btn'),
+    document.getElementById('latex-file-input'),
+    $latexInput
+  );
+  setupFileInput(
+    document.getElementById('markdown-pane'),
+    document.getElementById('markdown-file-btn'),
+    document.getElementById('markdown-file-input'),
+    $markdownInput
+  );
+
+  // ── クリップボードコピー ─────────────────────────────────────────────────────
+  $copyBtn.addEventListener('click', (e) => {
+    const text = $output.value;
+    if (!text) return;
+
+    navigator.clipboard.writeText(text).then(() => {
+      const btn  = e.currentTarget;
+      const prev = btn.textContent;
+      btn.textContent = '✅ コピーしました';
+      setTimeout(() => { btn.textContent = prev; }, 1800);
+    }).catch(() => {
+      // Clipboard API 非対応環境向けフォールバック
+      $output.select();
+      document.execCommand('copy');
+    });
+  });
+</script>
+
+</body>
+</html>
