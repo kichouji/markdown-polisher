@@ -120,6 +120,35 @@
       background: #eef2ff;
     }
 
+    /* ── LaTeX list ── */
+    .latex-list {
+      border-top: 1px solid #dde1e7;
+      max-height: 160px;
+      overflow-y: auto;
+    }
+    .latex-list-header {
+      position: sticky;
+      top: 0;
+      background: #eef2ff;
+      border-bottom: 1px solid #dde1e7;
+      padding: 5px 14px;
+      font-size: .75rem;
+      font-weight: 600;
+      color: #3730a3;
+    }
+    .latex-list ol {
+      padding: 8px 14px 8px 38px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .latex-list li {
+      font-family: 'Consolas', 'Menlo', 'Monaco', monospace;
+      font-size: .78rem;
+      color: #1a1a2e;
+      word-break: break-all;
+    }
+
     /* ── Controls bar ── */
     .controls-bar {
       background: #fff;
@@ -281,6 +310,10 @@
         <input type="file" id="latex-file-input" accept=".txt,.tex,.latex" hidden>
       </div>
       <textarea id="latex-input" placeholder="LaTeX形式の数式を含むテキストを貼り付けるか、ファイルをドロップしてください。&#10;例: $X$ や $$Attention(Q,K,V)=...$$"></textarea>
+      <div class="latex-list" id="latex-list" hidden>
+        <div class="latex-list-header">抽出された LaTeX 式 — <span id="latex-count">0</span> 個</div>
+        <ol id="latex-list-items"></ol>
+      </div>
     </div>
     <div class="pane" id="markdown-pane">
       <div class="pane-header">
@@ -361,6 +394,9 @@
   const $errorMsg      = document.getElementById('error-msg');
   const $convertBtn    = document.getElementById('convert-btn');
   const $copyBtn       = document.getElementById('copy-btn');
+  const $latexList      = document.getElementById('latex-list');
+  const $latexListItems = document.getElementById('latex-list-items');
+  const $latexCount     = document.getElementById('latex-count');
   const $cbSectionHeader = document.getElementById('cb-section-header');
   const $cbImage         = document.getElementById('cb-image');
   const $cbBase64        = document.getElementById('cb-base64');
@@ -437,13 +473,15 @@
   // ── 機能3: 注釈番号の削除 ───────────────────────────────────────────────────
   // 「注釈」「参考文献」「脚注」の見出し以降は対象外
   function deleteAnnotations(text) {
+    // 「スペース(省略可) + 1〜2桁数字 + 。」または「スペース + 。」を削除
+    const pattern = / ?\d{1,2}(?=。)| (?=。)/g;
     const sectionMatch = /^#{1,6}\s*(注釈|参考文献|脚注)/m.exec(text);
     if (sectionMatch) {
       const body = text.slice(0, sectionMatch.index);
       const tail = text.slice(sectionMatch.index);
-      return body.replace(/ ?\d{1,2}(?=。)/g, '') + tail;
+      return body.replace(pattern, '') + tail;
     }
-    return text.replace(/ ?\d{1,2}(?=。)/g, '');
+    return text.replace(pattern, '');
   }
 
   // ── 機能4: 行末スペース削除（半角のみ） ─────────────────────────────────────
@@ -483,6 +521,25 @@
     }
     return result.join('\n');
   }
+
+  // ── LaTeX 式リスト表示 ──────────────────────────────────────────────────────
+  function updateLatexList() {
+    const items = extractLatex($latexInput.value);
+    if (items.length === 0) {
+      $latexList.hidden = true;
+      return;
+    }
+    $latexCount.textContent = items.length;
+    $latexListItems.innerHTML = '';
+    for (const item of items) {
+      const li = document.createElement('li');
+      li.textContent = item;
+      $latexListItems.appendChild(li);
+    }
+    $latexList.hidden = false;
+  }
+
+  $latexInput.addEventListener('input', updateLatexList);
 
   // ── 変換実行 ────────────────────────────────────────────────────────────────
   $convertBtn.addEventListener('click', () => {
@@ -530,7 +587,7 @@
     }
 
     const reader = new FileReader();
-    reader.onload  = (e) => { textareaEl.value = e.target.result; };
+    reader.onload  = (e) => { textareaEl.value = e.target.result; textareaEl.dispatchEvent(new Event('input')); };
     reader.onerror = ()  => { setError('⚠ ファイルの読み込みに失敗しました。'); };
     reader.readAsText(file, 'UTF-8');
   }
