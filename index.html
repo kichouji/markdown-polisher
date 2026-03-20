@@ -495,7 +495,7 @@
     const result = [];
     for (let i = 0; i < lines.length; i++) {
       result.push(lines[i]);
-      if (/^\* /.test(lines[i]) && i + 1 < lines.length && /^\* /.test(lines[i + 1])) {
+      if (/^[*-] /.test(lines[i]) && i + 1 < lines.length && /^[*-] /.test(lines[i + 1])) {
         result.push('');
       }
     }
@@ -509,10 +509,10 @@
     const lines  = text.split('\n');
     const result = [];
     for (let i = 0; i < lines.length; i++) {
-      if (/^\* /.test(lines[i])) {
+      if (/^[*-] /.test(lines[i])) {
         let j = i + 1;
         while (j < lines.length && lines[j].trim() === '') j++;
-        if (j < lines.length && /^\* /.test(lines[j])) {
+        if (j < lines.length && /^[*-] /.test(lines[j])) {
           result.push(lines[i] + '<br><br>');
           continue;
         }
